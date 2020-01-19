@@ -4,7 +4,7 @@ Summary: An open source implementation of the Trusted Network Connect (TNC) fram
 Name: tncfhh
 Version: 0.8.3
 
-Release: 14%{?dist}
+Release: 16%{?dist}
 License: GPLv2
 Url: http://trust.inform.fh-hannover.de/joomla/index.php/projects/tncfhh
 Source0: http://trust.inform.fh-hannover.de/download/tncfhh/tncfhh-%{version}.tar.gz
@@ -173,6 +173,12 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libtncutil.so.?.?.?
 
 %changelog
+* Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 0.8.3-16
+- Mass rebuild 2014-01-24
+
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 0.8.3-15
+- Mass rebuild 2013-12-27
+
 * Thu Sep 12 2013 Avesh Agarwal <avagarwa@redhat.com> - 0.8.3-14
 - Rebuilding for rhel7 as due to unblocking of xerces-c build 
   was failing
