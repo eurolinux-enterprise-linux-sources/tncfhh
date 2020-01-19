@@ -1,0 +1,141 @@
+diff -urNp tncfhh-0.8.3-cvs-patched/CMakeLists.txt tncfhh-0.8.3-current/CMakeLists.txt
+--- tncfhh-0.8.3-cvs-patched/CMakeLists.txt	2011-09-02 15:59:50.668185744 -0400
++++ tncfhh-0.8.3-current/CMakeLists.txt	2011-09-19 18:01:00.251630757 -0400
+@@ -48,28 +48,17 @@ IF(${COMPONENT} STREQUAL "AR")
+ 	add_subdirectory(imunit)
+ 	add_subdirectory(tncutil)
+ 	add_subdirectory(tncxacml)
+-	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tncutil/src)
+-	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tncxacml/src)
+ 
+ 	# only IMCs
+ 	add_subdirectory(imcv)
+ 	
+-	IF(${NAL} STREQUAL "8021X" OR ${NAL} STREQUAL "ALL")
+-		# nothing additional
+-	ENDIF(${NAL} STREQUAL "8021X" OR ${NAL} STREQUAL "ALL")
+-	
+ 	IF(${NAL} STREQUAL "VPN" OR ${NAL} STREQUAL "ALL")
+-		include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tncs/src)
+ 		add_subdirectory(tncs)
+ 		add_subdirectory(vpn)
+ 	ENDIF(${NAL} STREQUAL "VPN" OR ${NAL} STREQUAL "ALL")
+ ENDIF(${COMPONENT} STREQUAL "AR")
+ 
+ IF(${COMPONENT} STREQUAL "PEP")
+-	IF(${NAL} STREQUAL "8021X" OR ${NAL} STREQUAL "ALL")
+-	
+-	ENDIF(${NAL} STREQUAL "8021X" OR ${NAL} STREQUAL "ALL")
+-	
+ 	IF(${NAL} STREQUAL "VPN" OR ${NAL} STREQUAL "ALL")
+ 		add_subdirectory(tncutil)
+ 		add_subdirectory(vpn)
+@@ -87,11 +76,9 @@ IF(${COMPONENT} STREQUAL "PDP")
+ 	add_subdirectory(imcv)
+ 	
+ 	add_subdirectory(tncs)
+-	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tncs/src)
+ 	
+ 	IF(${NAL} STREQUAL "8021X" OR ${NAL} STREQUAL "ALL")
+ 		add_subdirectory(naaeap)
+-		include_directories(${CMAKE_CURRENT_SOURCE_DIR}/naaeap/src)
+ 	ENDIF(${NAL} STREQUAL "8021X" OR ${NAL} STREQUAL "ALL")
+ 	
+ 	IF(${NAL} STREQUAL "VPN" OR ${NAL} STREQUAL "ALL")
+@@ -101,9 +88,7 @@ ENDIF(${COMPONENT} STREQUAL "PDP")
+ 
+ IF(${COMPONENT} STREQUAL "TNCSIM")
+ 	add_subdirectory(tncs)
+-	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tncs/src)
+ 	add_subdirectory(naaeap)
+-	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/naaeap/src)
+ 	add_subdirectory(tncsim)
+ ENDIF(${COMPONENT} STREQUAL "TNCSIM")
+ 
+@@ -116,11 +101,10 @@ IF(${COMPONENT} STREQUAL "ALL")
+ 	add_subdirectory(tncxacml)
+ 	add_subdirectory(imcv)
+ 	add_subdirectory(tncs)
+-	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tncs/src)
++	add_subdirectory(tncsim)
+ 		
+ 	IF(${NAL} STREQUAL "8021X" OR ${NAL} STREQUAL "ALL")
+ 		add_subdirectory(naaeap)
+-		include_directories(${CMAKE_CURRENT_SOURCE_DIR}/naaeap/src)
+ 	ENDIF(${NAL} STREQUAL "8021X" OR ${NAL} STREQUAL "ALL")
+ 	
+ 	IF(${NAL} STREQUAL "VPN" OR ${NAL} STREQUAL "ALL")
+diff -urNp tncfhh-0.8.3-cvs-patched/imcv/attestation/imv/src/AttestationIMV.cpp tncfhh-0.8.3-current/imcv/attestation/imv/src/AttestationIMV.cpp
+--- tncfhh-0.8.3-cvs-patched/imcv/attestation/imv/src/AttestationIMV.cpp	2011-09-02 15:59:50.973185234 -0400
++++ tncfhh-0.8.3-current/imcv/attestation/imv/src/AttestationIMV.cpp	2011-09-06 11:11:02.218885566 -0400
+@@ -94,7 +94,7 @@ TNC_Result AttestationIMV::receiveMessag
+ 			TNC_UInt32 length, TNC_MessageType type)
+ {
+ 	LOG4CXX_TRACE(logger, "receiveMessage()");
+-	TNC_IMV_Action_Recommendation verifyResult;
++	//TNC_IMV_Action_Recommendation verifyResult;
+ 
+ 	if (!nothingWrong) {
+ 		LOG4CXX_ERROR(logger, "Previous failure... not sending anything...");
+diff -urNp tncfhh-0.8.3-cvs-patched/imcv/attestation/imv/src/AttestationIMV.h tncfhh-0.8.3-current/imcv/attestation/imv/src/AttestationIMV.h
+--- tncfhh-0.8.3-cvs-patched/imcv/attestation/imv/src/AttestationIMV.h	2011-09-02 15:59:50.973185234 -0400
++++ tncfhh-0.8.3-current/imcv/attestation/imv/src/AttestationIMV.h	2011-09-06 11:10:22.562920837 -0400
+@@ -67,7 +67,7 @@ private:
+ 	TNC_Buffer			quoteDigest[SHA_DIGEST_LENGTH];
+ 	QuoteType			quoteType;
+ 	vector<PcrEntry>	entries;
+-	int				currentEntry;
++	unsigned int				currentEntry;
+ 
+ public:
+ 	AttestationIMV(TNC_ConnectionID conID,
+diff -urNp tncfhh-0.8.3-cvs-patched/imcv/clamav/imv/src/ClamavIMV.cpp tncfhh-0.8.3-current/imcv/clamav/imv/src/ClamavIMV.cpp
+--- tncfhh-0.8.3-cvs-patched/imcv/clamav/imv/src/ClamavIMV.cpp	2011-09-02 15:59:51.003185184 -0400
++++ tncfhh-0.8.3-current/imcv/clamav/imv/src/ClamavIMV.cpp	2011-09-06 11:18:23.820803967 -0400
+@@ -439,7 +439,7 @@ bool ClamavIMV::doXACMLEvaluation(std::v
+ 					 * First, replaces all . with whitespace, then uses integer-stringstream to write every part into three integer variables
+ 					 */
+ 					std::string value = iter->value;
+-					int position = value.find("."); // find first space
++					unsigned int position = value.find("."); // find first space
+ 					while (position != std::string::npos)
+ 					{
+ 						value.replace(position, 1, " ");
+diff -urNp tncfhh-0.8.3-cvs-patched/naaeap/CMakeLists.txt tncfhh-0.8.3-current/naaeap/CMakeLists.txt
+--- tncfhh-0.8.3-cvs-patched/naaeap/CMakeLists.txt	2011-09-02 15:59:51.043185117 -0400
++++ tncfhh-0.8.3-current/naaeap/CMakeLists.txt	2011-09-19 18:40:37.440281698 -0400
+@@ -12,6 +12,8 @@ project(naaeap)
+ MESSAGE(STATUS "")
+ MESSAGE(STATUS "-- ${PROJECT_NAME} --")
+ 
++include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../tncs/src/)
++
+ # set sourcecode
+ # got with: $ find src \( -iname "*.cpp" -o -iname "*.c" \) -exec echo "set(src \${src} {})" \;
+ set(src)
+diff -urNp tncfhh-0.8.3-cvs-patched/tncxacml/src/tncxacml/XACMLHelper.cpp tncfhh-0.8.3-current/tncxacml/src/tncxacml/XACMLHelper.cpp
+--- tncfhh-0.8.3-cvs-patched/tncxacml/src/tncxacml/XACMLHelper.cpp	2011-09-02 15:59:50.625185812 -0400
++++ tncfhh-0.8.3-current/tncxacml/src/tncxacml/XACMLHelper.cpp	2011-09-06 11:17:26.248777352 -0400
+@@ -198,9 +198,8 @@ std::string XACMLHelper::getObligation(/
+ 				return XercesString(obligationID->getValue()).toString();
+ 			}
+ 		}
+-	} else {
+-		return std::string("");
+-	}
++	} 
++	return std::string("");
+ }
+ 
+ DOMDocument* XACMLHelper::createRequest() {
+diff -urNp tncfhh-0.8.3-cvs-patched/vpn/CMakeLists.txt tncfhh-0.8.3-current/vpn/CMakeLists.txt
+--- tncfhh-0.8.3-cvs-patched/vpn/CMakeLists.txt	2011-09-02 15:59:50.797185527 -0400
++++ tncfhh-0.8.3-current/vpn/CMakeLists.txt	2011-09-19 21:26:44.423011712 -0400
+@@ -13,6 +13,7 @@ MESSAGE(STATUS "-- ${PROJECT_NAME} --")
+ #library headers here
+ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libtncvpn/src/)
+ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../tncutil/src/)
++include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../tncs/src/)
+ 
+ # Find boost
+ #SET(Boost_ADDITIONAL_VERSIONS "1.39" "1.39.0")

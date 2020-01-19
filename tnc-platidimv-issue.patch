@@ -1,0 +1,12 @@
+diff -urNp tncfhh-0.8.3-patched/imcv/platid/imv/src/PlatidIMV.cpp tncfhh-0.8.3-current/imcv/platid/imv/src/PlatidIMV.cpp
+--- tncfhh-0.8.3-patched/imcv/platid/imv/src/PlatidIMV.cpp	2013-03-13 13:35:17.057350062 -0400
++++ tncfhh-0.8.3-current/imcv/platid/imv/src/PlatidIMV.cpp	2013-07-30 11:37:31.650592875 -0400
+@@ -202,7 +202,7 @@ int PlatidIMV::generateAndSendNonce()
+ 
+ 	if (randNonce == NULL) {
+ 		LOG4CXX_FATAL(logger, "Could not allocate memory for randNonce");
+-		nothingWrong == false;
++		nothingWrong = false;
+ 		return -1;
+ 	}
+ 

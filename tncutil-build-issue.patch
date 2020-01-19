@@ -1,0 +1,26 @@
+commit 1beaa664bc4c57979d11ea65a680c43a8530868c
+Author: Arran Cudbard-Bell <a.cudbardb@freeradius.org>
+Date:   Sun Mar 10 14:53:57 2013 -0400
+
+    Add missing dependencies in tncutil CMake file
+
+diff --git a/tncutil/CMakeLists.txt b/tncutil/CMakeLists.txt
+index 0f1652c..b34d4b0 100644
+--- a/tncutil/CMakeLists.txt
++++ b/tncutil/CMakeLists.txt
+@@ -31,11 +31,13 @@ if( CMAKE_COMPILER_IS_GNUCXX )
+     set( CMAKE_CXX_FLAGS  "${CMAKE_C_FLAGS} -fPIC")
+ endif( CMAKE_COMPILER_IS_GNUCXX )
+ 
++# verify openssl is available
++find_package(OpenSSL REQUIRED)
++
+ #define library
+ add_library(${PROJECT_NAME} SHARED ${src})
+ 
+-# add libraries needed by tncutil
+-target_link_libraries(${PROJECT_NAME} ${Log4cxx_LIBRARY} ${XercesC_LIBRARY})
++target_link_libraries(${PROJECT_NAME} ${Log4cxx_LIBRARY} ${XercesC_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES})
+ 
+ # set version
+ SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES VERSION ${TNCFHH_VERSION_MAJOR}.${TNCFHH_VERSION_MINOR}.${TNCFHH_VERSION_PATCH}  SOVERSION 0)

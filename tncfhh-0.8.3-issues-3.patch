@@ -1,0 +1,245 @@
+diff -urNp tncfhh-0.8.3-patched/CMakeLists.txt tncfhh-0.8.3-current/CMakeLists.txt
+--- tncfhh-0.8.3-patched/CMakeLists.txt	2013-03-13 13:36:35.180258668 -0400
++++ tncfhh-0.8.3-current/CMakeLists.txt	2013-07-30 11:43:10.831617818 -0400
+@@ -16,7 +16,7 @@ IF(NOT DEFINED CMAKE_INSTALL_LIBDIR)
+ 	SET(CMAKE_INSTALL_LIBDIR "lib")
+ ENDIF(NOT DEFINED CMAKE_INSTALL_LIBDIR)
+ IF(NOT DEFINED SYSCONF_INSTALL_DIR)
+-	SET(SYSCONF_INSTALL_DIR "/etc")
++	SET(SYSCONF_INSTALL_DIR "etc")
+ ENDIF(NOT DEFINED SYSCONF_INSTALL_DIR)
+ 
+ # convert variables to uppercase
+@@ -145,6 +145,8 @@ MESSAGE(STATUS "CMAKE_CURRENT_SOURCE_DIR
+ MESSAGE(STATUS "CMAKE_BINARY_DIR = ${CMAKE_BINARY_DIR}")
+ MESSAGE(STATUS "CMAKE_CURRENT_BINARY_DIR = ${CMAKE_CURRENT_BINARY_DIR}")
+ MESSAGE(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
++MESSAGE(STATUS "CMAKE_INSTALL_LIBDIR = ${CMAKE_INSTALL_LIBDIR}")
++MESSAGE(STATUS "SYSCONF_INSTALL_DIR = ${SYSCONF_INSTALL_DIR}")
+ MESSAGE(STATUS "-------------------------------------------------------------------------------" )
+ MESSAGE(STATUS "CPACK_SOURCE_IGNORE_FILES = ${CPACK_SOURCE_IGNORE_FILES}")
+ MESSAGE(STATUS "CPACK_SOURCE_PACKAGE_FILE_NAME = ${CPACK_SOURCE_PACKAGE_FILE_NAME}")
+diff -urNp tncfhh-0.8.3-patched/doc/tncfhh.tex tncfhh-0.8.3-current/doc/tncfhh.tex
+--- tncfhh-0.8.3-patched/doc/tncfhh.tex	2013-03-13 13:35:17.048350072 -0400
++++ tncfhh-0.8.3-current/doc/tncfhh.tex	2013-07-30 11:43:10.832617813 -0400
+@@ -837,7 +837,7 @@ e.g. TrouSerS since version 0.3.4 is nee
+ This version of attestationIMV does not support different policies (PCR values) per AR.
+ To prevent replay attacks a random 20 byte nonce is also part of each PCR\_SELECTION.
+ 
+-IMC configuration is located at \code{/etc/tnc/platidIMC.file} and contains a path to the 
++IMC configuration is located at \code{/etc/tnc/attestationimc.file} and contains a path to the 
+ X509 certificate and its corresponding private-key (AIK).
+ Currently, tools from \url{http://www.privacyca.com} are used
+ to create AIKs. The code from \code{identity.c} creates a AIK
+diff -urNp tncfhh-0.8.3-patched/imcv/attestation/imc/src/AttestationIMC.cpp tncfhh-0.8.3-current/imcv/attestation/imc/src/AttestationIMC.cpp
+--- tncfhh-0.8.3-patched/imcv/attestation/imc/src/AttestationIMC.cpp	2013-03-13 13:35:17.055350064 -0400
++++ tncfhh-0.8.3-current/imcv/attestation/imc/src/AttestationIMC.cpp	2013-07-30 11:47:52.174644471 -0400
+@@ -50,7 +50,7 @@ logger(Logger::getLogger("IMUnit.Abstrac
+ 
+ 
+ AttestationIMC::AttestationIMC(TNC_ConnectionID conID, AttestationIMCLibrary *imclib)
+-	: AbstractIMC(conID, imclib)
++	: tncfhh::iml::AbstractIMC(conID, imclib)
+ 	, initialized(false)
+ 	, certificateSent(false)
+ 	, certificateLength(-1)
+@@ -247,7 +247,7 @@ TNC_Result AttestationIMC::beginHandshak
+ 
+ 	initialized = true;
+ 
+-	tncc.sendMessage(certificate, certificateLength, TNC_MESSAGETYPE_FHH_ATTESTATION);
++	tncc.sendMessage(certificate, (TNC_UInt32)certificateLength, TNC_MESSAGETYPE_FHH_ATTESTATION);
+ 	certificateSent = true;
+ 	return TNC_RESULT_SUCCESS;
+ }
+@@ -358,7 +358,7 @@ int AttestationIMC::initTpmStuff() {
+ 	CHECK_TSS_RETURN(res, "Get_SRK_Policy", cleanup2);
+ 	res = Tspi_Policy_SetSecret(srkPolicy, TSS_SECRET_MODE_SHA1, 20, wks);
+ 	CHECK_TSS_RETURN(res, "Set_SRK_Secret", cleanup2);
+-	res = Tspi_Context_LoadKeyByBlob(hContext, hSRK, aikBlobLength, aikBlob, &hAIK);
++	res = Tspi_Context_LoadKeyByBlob(hContext, hSRK, (TNC_UInt32)aikBlobLength, aikBlob, &hAIK);
+ 	CHECK_TSS_RETURN(res, "Load aik blob", cleanup3);
+ 	res = Tspi_Context_GetTpmObject(hContext, &hTPM);
+ 	CHECK_TSS_RETURN(res, "Get_TPM_Object", cleanup4);
+diff -urNp tncfhh-0.8.3-patched/imcv/attestation/imc/src/AttestationIMC.h tncfhh-0.8.3-current/imcv/attestation/imc/src/AttestationIMC.h
+--- tncfhh-0.8.3-patched/imcv/attestation/imc/src/AttestationIMC.h	2013-03-13 13:35:17.056350063 -0400
++++ tncfhh-0.8.3-current/imcv/attestation/imc/src/AttestationIMC.h	2013-07-30 11:43:10.833617808 -0400
+@@ -88,11 +88,11 @@ private:
+ 	bool				certificateSent;
+ 
+ 	/* place to store the x509 certificate */
+-	TNC_UInt32			certificateLength;
++	int				certificateLength;
+ 	TNC_BufferReference		certificate;
+ 
+ 	/* place to store the aik blob */
+-	TNC_UInt32			aikBlobLength;
++	int				aikBlobLength;
+ 	TNC_BufferReference		aikBlob;
+ 
+ 	TNC_UInt32			signatureLength;
+diff -urNp tncfhh-0.8.3-patched/imcv/attestation/imc/src/AttestationIMCLibrary.cpp tncfhh-0.8.3-current/imcv/attestation/imc/src/AttestationIMCLibrary.cpp
+--- tncfhh-0.8.3-patched/imcv/attestation/imc/src/AttestationIMCLibrary.cpp	2013-03-13 13:35:17.055350064 -0400
++++ tncfhh-0.8.3-current/imcv/attestation/imc/src/AttestationIMCLibrary.cpp	2013-07-30 11:43:10.834617806 -0400
+@@ -33,7 +33,7 @@ AttestationIMCLibrary::AttestationIMCLib
+ 	this->addMessageType(TNC_VENDORID_FHH, TNC_SUBTYPE_FHH_ATTESTATION);
+ }
+ 
+-AbstractIMC *AttestationIMCLibrary::createNewImcInstance(TNC_ConnectionID conId)
++tncfhh::iml::AbstractIMC *AttestationIMCLibrary::createNewImcInstance(TNC_ConnectionID conId)
+ {
+ 	return new AttestationIMC(conId, this);
+ }
+diff -urNp tncfhh-0.8.3-patched/imcv/attestation/imv/src/AttestationIMV.cpp tncfhh-0.8.3-current/imcv/attestation/imv/src/AttestationIMV.cpp
+--- tncfhh-0.8.3-patched/imcv/attestation/imv/src/AttestationIMV.cpp	2013-03-13 13:36:35.180258668 -0400
++++ tncfhh-0.8.3-current/imcv/attestation/imv/src/AttestationIMV.cpp	2013-07-30 11:48:25.438647946 -0400
+@@ -45,7 +45,7 @@ logger(Logger::getLogger("IMUnit.Abstrac
+ AttestationIMV::AttestationIMV(TNC_ConnectionID conID,
+ 		AttestationIMVLibrary *imclib,
+ 		AttestationIMVPolicyManager *pm )
+-	: AbstractIMV(conID, imclib)
++	: tncfhh::iml::AbstractIMV(conID, imclib)
+ 	, x509Cert(NULL)
+ 	, pKey(NULL)
+ 	, rsa(NULL)
+diff -urNp tncfhh-0.8.3-patched/imcv/attestation/imv/src/AttestationIMVLibrary.cpp tncfhh-0.8.3-current/imcv/attestation/imv/src/AttestationIMVLibrary.cpp
+--- tncfhh-0.8.3-patched/imcv/attestation/imv/src/AttestationIMVLibrary.cpp	2013-03-13 13:35:17.056350063 -0400
++++ tncfhh-0.8.3-current/imcv/attestation/imv/src/AttestationIMVLibrary.cpp	2013-07-30 11:43:10.835617807 -0400
+@@ -29,15 +29,15 @@
+ using namespace log4cxx;
+ 
+ 
+-TNCFHH_IMVLIBRARY_INITIALIZE(AttestationIMVLibrary);
+-
+-
+ static LoggerPtr
+ logger(Logger::getLogger("IMUnit.IMUnitLibrary.IMVLibrary.AttestationIMVLibrary"));
+ 
++TNCFHH_IMVLIBRARY_INITIALIZE(AttestationIMVLibrary);
++
+ 
+ AttestationIMVLibrary::AttestationIMVLibrary()
+ {
++	LOG4CXX_DEBUG(logger, "AttestationIMVLibrary()");
+ 	this->imUnitLibraryName = "AttestationIMVLibrary";
+ 	this->addMessageType(TNC_VENDORID_FHH, TNC_SUBTYPE_FHH_ATTESTATION);
+ 	this->policyManager = new AttestationIMVPolicyManager(IMV_CONFIG);
+@@ -52,7 +52,7 @@ AttestationIMVLibrary::~AttestationIMVLi
+ 	}
+ }
+ 
+-AbstractIMV * AttestationIMVLibrary::createNewImvInstance(TNC_ConnectionID connid)
++tncfhh::iml::AbstractIMV * AttestationIMVLibrary::createNewImvInstance(TNC_ConnectionID connid)
+ {
+ 	return new AttestationIMV(connid, this, policyManager);
+ }
+diff -urNp tncfhh-0.8.3-patched/imcv/attestation/imv/src/AttestationIMVPolicyManager.cpp tncfhh-0.8.3-current/imcv/attestation/imv/src/AttestationIMVPolicyManager.cpp
+--- tncfhh-0.8.3-patched/imcv/attestation/imv/src/AttestationIMVPolicyManager.cpp	2013-03-13 13:35:17.056350063 -0400
++++ tncfhh-0.8.3-current/imcv/attestation/imv/src/AttestationIMVPolicyManager.cpp	2013-07-30 11:51:51.710666880 -0400
+@@ -57,7 +57,7 @@ void PcrEntry::stringToByteArray(const s
+ 	// check if size matches SHA-1
+ 	if(valueAsString.size() != sha1SizeAsString)
+ 	{
+-		LOG4CXX_WARN(logger, "PcrEntry valueAsString must be 40 characters long, but length is " << valueAsString.size());
++		//LOG4CXX_WARN(logger, "PcrEntry valueAsString must be 40 characters long, but length is " << valueAsString.size());
+ 		memset(value, 0, sha1SizeAsString/2);
+ 		index = 0;
+ 		this->valueAsString = "0000000000000000000000000000000000000000";
+@@ -93,18 +93,18 @@ PcrEntry::~PcrEntry()
+ 
+ AttestationIMVPolicyManager::AttestationIMVPolicyManager(const char *policyFile)
+ {
+-	LOG4CXX_TRACE(logger, "AttestationIMVPolicyManager()");
++	//LOG4CXX_TRACE(logger, "AttestationIMVPolicyManager()");
+ 	parsePolicy(policyFile);
+ }
+ 
+ AttestationIMVPolicyManager::~AttestationIMVPolicyManager()
+ {
+-	LOG4CXX_TRACE(logger, "~AttestationIMVPolicyManager");
++	//LOG4CXX_TRACE(logger, "~AttestationIMVPolicyManager");
+ }
+ 
+ void AttestationIMVPolicyManager::parsePolicy(const char * policyFile)
+ {
+-	LOG4CXX_DEBUG(logger, "Parsing policy file " << policyFile);
++	//LOG4CXX_DEBUG(logger, "Parsing policy file " << policyFile);
+ 
+ 	// clear old entries
+ 	this->pcrEntries.clear();
+@@ -119,19 +119,19 @@ void AttestationIMVPolicyManager::parseP
+ 			parsePolicyLine(line);
+ 		}
+ 	} else {
+-		LOG4CXX_WARN(logger, "Could not open file!");
++		//LOG4CXX_WARN(logger, "Could not open file!");
+ 	}
+ 	file.close();
+ 
+ 	for (unsigned int i = 0; i < this->knownAiks.size(); ++i) {
+-		LOG4CXX_TRACE(logger, "AIK " << i << " " << knownAiks[i]);
++		//LOG4CXX_TRACE(logger, "AIK " << i << " " << knownAiks[i]);
+ 	}
+ 
+ 	for (unsigned int i = 0; i < this->pcrEntries.size(); ++i) {
+-		LOG4CXX_DEBUG(logger, "pcr" << (unsigned int) pcrEntries[i].index << " " << pcrEntries[i].valueAsString);
++		//LOG4CXX_DEBUG(logger, "pcr" << (unsigned int) pcrEntries[i].index << " " << pcrEntries[i].valueAsString);
+ 	}
+ 
+-	LOG4CXX_TRACE(logger, "quoteType = " << (quoteType == single ? "single" : "complete"));
++	//LOG4CXX_TRACE(logger, "quoteType = " << (quoteType == single ? "single" : "complete"));
+ }
+ 
+ void AttestationIMVPolicyManager::parsePolicyLine(std::string &line)
+@@ -163,7 +163,7 @@ void AttestationIMVPolicyManager::parseP
+ 		parsePolicyLineQuoteType(line);
+ 	} else {
+ 		// an invalid line
+-		LOG4CXX_WARN(logger, "Invalid policy line: " << line);
++		//LOG4CXX_WARN(logger, "Invalid policy line: " << line);
+ 	}
+ }
+ 
+@@ -185,7 +185,7 @@ void AttestationIMVPolicyManager::parseP
+ 	pos = line.find_first_of('=');
+ 	// get pcr index
+ 	ss << line.substr(3, pos - 3);
+-	LOG4CXX_DEBUG(logger, "ss = " << ss.str());
++	//LOG4CXX_DEBUG(logger, "ss = " << ss.str());
+ 	ss >> index;
+ 
+ 	// get hash value
+@@ -210,7 +210,7 @@ void AttestationIMVPolicyManager::parseP
+ 	} else if (!ss.str().compare("complete")){
+ 		quoteType = complete;
+ 	} else {
+-		LOG4CXX_WARN(logger, "Invalid quoteType. Using 'complete' as default.");
++		//LOG4CXX_WARN(logger, "Invalid quoteType. Using 'complete' as default.");
+ 		quoteType = complete;
+ 	}
+ }
+@@ -218,7 +218,7 @@ void AttestationIMVPolicyManager::parseP
+ 
+ bool AttestationIMVPolicyManager::isAikKnown(std::string fingerprint)
+ {
+-	LOG4CXX_TRACE(logger, "isAikKnown()");
++	//LOG4CXX_TRACE(logger, "isAikKnown()");
+ 	std::vector<std::string>::iterator it;
+ 	it = find(this->knownAiks.begin(), this->knownAiks.end(), fingerprint);
+ 	return it == this->knownAiks.end() ? false : true;
+@@ -226,13 +226,13 @@ bool AttestationIMVPolicyManager::isAikK
+ 
+ QuoteType AttestationIMVPolicyManager::getQuoteType()
+ {
+-	LOG4CXX_TRACE(logger, "getQuoteType()");
++	//LOG4CXX_TRACE(logger, "getQuoteType()");
+ 	return this->quoteType;
+ }
+ 
+ std::vector<PcrEntry> AttestationIMVPolicyManager::getPcrEntries()
+ {
+-	LOG4CXX_TRACE(logger, "getPcrEntries()");
++	//LOG4CXX_TRACE(logger, "getPcrEntries()");
+ 	return this->pcrEntries;
+ }
+ 

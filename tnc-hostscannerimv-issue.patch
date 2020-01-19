@@ -1,0 +1,12 @@
+diff -urNp tncfhh-0.8.3-patched/imcv/hostscanner/imv/src/HostScannerIMV.cpp tncfhh-0.8.3-current/imcv/hostscanner/imv/src/HostScannerIMV.cpp
+--- tncfhh-0.8.3-patched/imcv/hostscanner/imv/src/HostScannerIMV.cpp	2013-03-13 13:35:17.055350064 -0400
++++ tncfhh-0.8.3-current/imcv/hostscanner/imv/src/HostScannerIMV.cpp	2013-07-30 11:40:13.326604778 -0400
+@@ -311,7 +311,7 @@ std::vector<std::pair<std::string,std::s
+ 		if (line.size()<1 || line.at(0)=='#')
+ 			continue;
+ 
+-        u_int pos = line.find_first_of('=');
++        unsigned int pos = line.find_first_of('=');
+ 
+         /* ignore illegal lines */
+         if (pos == std::string::npos) {

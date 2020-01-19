@@ -1,0 +1,172 @@
+diff -urNp tncfhh-0.8.3-patched/imcv/attestation/imc/src/AttestationIMC.cpp tncfhh-0.8.3-current/imcv/attestation/imc/src/AttestationIMC.cpp
+--- tncfhh-0.8.3-patched/imcv/attestation/imc/src/AttestationIMC.cpp	2013-09-12 12:05:09.192184453 -0400
++++ tncfhh-0.8.3-current/imcv/attestation/imc/src/AttestationIMC.cpp	2013-09-12 12:00:32.438166255 -0400
+@@ -275,7 +275,7 @@ TNC_Result AttestationIMC::receiveMessag
+ 
+ 		bitMaskLength = ntohs(*(UINT16*)message);
+ 
+-		if ((2 + bitMaskLength + 20) != length) {
++		if ((TNC_UInt32)(2 + bitMaskLength + 20) != length) {
+ 			LOG4CXX_FATAL(logger, "Message length is wrong!!!");
+ 			return TNC_RESULT_INVALID_PARAMETER;
+ 		}
+@@ -428,6 +428,8 @@ int AttestationIMC::doQuote(PcrSelection
+ 			TNC_MESSAGETYPE_FHH_ATTESTATION);
+ 
+ 	Tspi_Context_FreeMemory(hContext, valid.rgbValidationData);
++	
++	return 0;
+ }
+ 
+ TNC_Result AttestationIMC::batchEnding()
+diff -urNp tncfhh-0.8.3-patched/imunit/src/imunit/IMUnitLibrary.cpp tncfhh-0.8.3-current/imunit/src/imunit/IMUnitLibrary.cpp
+--- tncfhh-0.8.3-patched/imunit/src/imunit/IMUnitLibrary.cpp	2013-09-12 12:03:48.251179131 -0400
++++ tncfhh-0.8.3-current/imunit/src/imunit/IMUnitLibrary.cpp	2013-09-12 12:00:32.440166255 -0400
+@@ -53,7 +53,7 @@ IMUnitLibrary::IMUnitLibrary()
+ {
+     // Set up a simple configuration that logs on the console.
+ 	// only when no configuration exists
+-	if (!checkLog4cxxInitialized())
++	//if (!checkLog4cxxInitialized())
+ 	{
+ 		// try to use config file
+ 		const char* log4cxxConfigurationEnv = getenv("LOG4CXX_CONFIGURATION");
+diff -urNp tncfhh-0.8.3-patched/shared/cmake_modules/FindDL.cmake tncfhh-0.8.3-current/shared/cmake_modules/FindDL.cmake
+--- tncfhh-0.8.3-patched/shared/cmake_modules/FindDL.cmake	1969-12-31 19:00:00.000000000 -0500
++++ tncfhh-0.8.3-current/shared/cmake_modules/FindDL.cmake	2013-09-12 12:00:32.440166255 -0400
+@@ -0,0 +1,26 @@
++# Find the DL includes and library
++#
++# This module defines
++#  DL_INCLUDE_DIR, where to find dlfcn.h, etc.
++#  DL_LIBRARY, where to find the DL library.
++#  DL_FOUND, If false, do not try to use DL.
++ 
++FIND_PATH(DL_INCLUDE_DIR dlfcn.h)
++
++FIND_LIBRARY(DL_LIBRARY dl) 
++
++IF (DL_INCLUDE_DIR AND DL_LIBRARY)
++   SET(DL_FOUND TRUE)
++ELSE(DL_INCLUDE_DIR AND DL_LIBRARY)
++   SET(DL_FOUND FALSE)
++ENDIF (DL_INCLUDE_DIR AND DL_LIBRARY)
++
++IF (DL_FOUND)
++   IF (NOT DL_FIND_QUIETLY)
++      MESSAGE(STATUS "Found DL: ${DL_LIBRARY}")
++   ENDIF (NOT DL_FIND_QUIETLY)
++ELSE (DL_FOUND)
++   IF (DL_FIND_REQUIRED)
++      MESSAGE(FATAL_ERROR "Could not find DL")
++   ENDIF (DL_FIND_REQUIRED)
++ENDIF (DL_FOUND)
+diff -urNp tncfhh-0.8.3-patched/tncs/CMakeLists.txt tncfhh-0.8.3-current/tncs/CMakeLists.txt
+--- tncfhh-0.8.3-patched/tncs/CMakeLists.txt	2013-09-12 12:03:48.245179130 -0400
++++ tncfhh-0.8.3-current/tncs/CMakeLists.txt	2013-09-12 12:00:32.440166255 -0400
+@@ -23,8 +23,8 @@ include_directories(${CMAKE_CURRENT_SOUR
+ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../tncxacml/src/)
+ 
+ # find additionally required libraries 
+-find_package(LTDL REQUIRED)
+-include_directories(${LTDL_INCLUDE_DIR})
++find_package(DL REQUIRED)
++include_directories(${DL_INCLUDE_DIR})
+ 
+ find_package(XercesC 2.8 REQUIRED)
+ include_directories(${XercesC_INCLUDE_DIR})
+@@ -59,7 +59,7 @@ set(src ${src} src/tncs/iel/tnc1/TNC1Pro
+ add_library(${PROJECT_NAME} SHARED ${src})
+ 
+ # add libraries
+-target_link_libraries(${PROJECT_NAME} ${LTDL_LIBRARY} ${XercesC_LIBRARY} ${Log4cxx_LIBRARY} tncutil tncxacml)
++target_link_libraries(${PROJECT_NAME} ${DL_LIBRARY} ${XercesC_LIBRARY} ${Log4cxx_LIBRARY} tncutil tncxacml)
+ 
+ # set version
+ SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES VERSION ${TNCFHH_VERSION_MAJOR}.${TNCFHH_VERSION_MINOR}.${TNCFHH_VERSION_PATCH}  SOVERSION 0)
+diff -urNp tncfhh-0.8.3-patched/tncs/src/tncs/iel/IMVProperties.cpp tncfhh-0.8.3-current/tncs/src/tncs/iel/IMVProperties.cpp
+--- tncfhh-0.8.3-patched/tncs/src/tncs/iel/IMVProperties.cpp	2013-09-12 12:03:48.244179130 -0400
++++ tncfhh-0.8.3-current/tncs/src/tncs/iel/IMVProperties.cpp	2013-09-12 12:00:32.441166255 -0400
+@@ -51,17 +51,13 @@ IMVProperties::IMVProperties(TNC_IMVID i
+ {
+ 	LOG4CXX_DEBUG(logger, "Create IMVProperties " << id << ":\"" << name << "\" file:\"" << file + "\"");
+ 
+-	// initialize libtool
+-	int libtoolInit = lt_dlinit();
+-	// check for errors
+-	if(libtoolInit)
+-		throw std::runtime_error(std::string("Error while initializing libtool. ") + lt_dlerror());
+-
+ 	// open libIMV.so
+-	this->handle = lt_dlopen(file.c_str());
++	this->handle = dlopen(file.c_str(), RTLD_LAZY | RTLD_GLOBAL);
++
+ 	// check for errors
+-	if(!this->handle)
+-		throw std::runtime_error(std::string("Error while loading ") + file + ". " + lt_dlerror());
++	if(!this->handle) {
++		throw std::runtime_error(std::string("Error while loading ") + file + ". " + dlerror());
++	}
+ 
+ 
+ 	/* retrieve function pointers */
+@@ -404,11 +400,11 @@ void IMVProperties::reportMessageTypes(T
+  *        * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *        *
+  *                                                                           *
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+-lt_ptr IMVProperties::getSymbol(lt_dlhandle handle, const char *name) throw (std::runtime_error)
++void *IMVProperties::getSymbol(void *handle, const char *name) throw (std::runtime_error)
+ {
+-	lt_ptr ret = lt_dlsym(handle, name);
++	void *ret = dlsym(handle, name);
+ 	if(ret == NULL){
+-		throw std::runtime_error(std::string("Failed to resolve symbol ") + name + ":" + lt_dlerror());
++		throw std::runtime_error(std::string("Failed to resolve symbol ") + name + ":" + dlerror());
+ 	}
+ 	return ret;
+ }
+@@ -516,10 +512,11 @@ void IMVProperties::handleFatalError()
+ 
+     LOG4CXX_INFO(logger, "Try to unload IMV " << this->name);
+     // shutdown libIMV.so
+-    int libtoolClose = lt_dlclose(this->handle);
++    int libtoolClose = dlclose(this->handle);
+ 
+-    if(libtoolClose)
+-        LOG4CXX_ERROR(logger, "Error while unloading module. " << lt_dlerror());
++    if(libtoolClose) {
++        LOG4CXX_ERROR(logger, "Error while unloading module. " << dlerror());
++    }
+ 
+ //    // shutdown libtool
+ //    int libtoolExit = lt_dlexit();
+diff -urNp tncfhh-0.8.3-patched/tncs/src/tncs/iel/IMVProperties.h tncfhh-0.8.3-current/tncs/src/tncs/iel/IMVProperties.h
+--- tncfhh-0.8.3-patched/tncs/src/tncs/iel/IMVProperties.h	2013-09-12 12:03:48.243179130 -0400
++++ tncfhh-0.8.3-current/tncs/src/tncs/iel/IMVProperties.h	2013-09-12 12:00:32.441166255 -0400
+@@ -142,7 +142,7 @@
+ #define TNCS_IMVPROPERTIES_H_
+ 
+ #include <tcg/tnc/tncifimv.h>
+-#include <ltdl.h>
++#include <dlfcn.h>
+ #include <string>
+ #include <list>
+ #include <stdexcept>
+@@ -259,7 +259,7 @@ private:
+ 	/**
+ 	 * Handle to libIMV.so
+ 	 */
+-	lt_dlhandle handle;
++	void *handle;
+ 
+ 	/**
+ 	 * Wrapper function for lt_dlsym
+@@ -269,7 +269,7 @@ private:
+ 	 *
+ 	 * @return A pointer to the desired function.
+ 	 */
+-	lt_ptr getSymbol(lt_dlhandle handle, const char *name)
++	void *getSymbol(void *handle, const char *name)
+ 			throw (std::runtime_error);
+ 
+ 	/**
